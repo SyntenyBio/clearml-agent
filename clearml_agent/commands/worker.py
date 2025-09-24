@@ -1114,6 +1114,8 @@ class Worker(ServiceCommandSection):
         """
         # start new process and execute task id
         # "Running task '{}'".format(task_id)
+        import time
+        print(time.time())
         print(self._task_logging_start_message.format(task_id))
         task_session = task_session or self._session
 
@@ -1287,10 +1289,17 @@ class Worker(ServiceCommandSection):
 
             display_docker_command = DockerArgsSanitizer.sanitize_docker_command(self._session, full_docker_cmd)
 
+            import shlex
+            import textwrap
+
+            cmd_str = shlex.join(display_docker_command)
+            pretty_cmd = textwrap.fill(cmd_str, width=140, subsequent_indent="  ")
+            lines = [f"Executing:\n{pretty_cmd}\n"]
+
             # send the actual used command line to the backend
             self.send_logs(
                 task_id=task_id,
-                lines=['Executing: {}\n'.format(display_docker_command)],
+                lines=lines,
                 level="INFO",
                 session=task_session,
             )
@@ -3289,8 +3298,10 @@ class Worker(ServiceCommandSection):
         # remove our internal env
         os.environ.pop("CLEARML_APT_INSTALL", None)
         os.environ.pop("TRAINS_APT_INSTALL", None)
-
-        print("Starting Task Execution:\n".format(current_task.id))
+        
+        import time
+        print(time.time())
+        print("Starting Task Execution:\n{}".format(current_task.id))
         exit_code = -1
         try:
             if disable_monitoring:
@@ -4954,9 +4965,10 @@ class Worker(ServiceCommandSection):
             update_scheme += (
                     docker_bash_script + " ; " +
                     "[ ! -z $LOCAL_PYTHON ] || export LOCAL_PYTHON={python} ; " +
-                    "$LOCAL_PYTHON -m pip --version > /dev/null || export LOCAL_PYTHON=$(PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin command -v python3) ; " +
-                    "$LOCAL_PYTHON -m pip install -U {pip_version} ; " +
-                    "$LOCAL_PYTHON -m pip install -U {clearml_agent_wheel} ; ").format(
+                    "$LOCAL_PYTHON -m pip --version > /dev/null || export LOCAL_PYTHON=$(PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin command -v python3) ; "
+                    # "$LOCAL_PYTHON -m pip install -U {pip_version} ; " +
+                    # "$LOCAL_PYTHON -m pip install -U {clearml_agent_wheel} ; "
+                ).format(
                 python_single_digit=python_version.split('.')[0],
                 python=python_version, pip_version=" ".join(PackageManager.get_pip_versions(wrap='\"')),
                 clearml_agent_wheel=clearml_agent_wheel,
