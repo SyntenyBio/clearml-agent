@@ -1114,8 +1114,6 @@ class Worker(ServiceCommandSection):
         """
         # start new process and execute task id
         # "Running task '{}'".format(task_id)
-        import time
-        print(time.time())
         print(self._task_logging_start_message.format(task_id))
         task_session = task_session or self._session
 
@@ -3234,6 +3232,7 @@ class Worker(ServiceCommandSection):
             print("No freeze information available")
 
         print("Environment setup completed successfully\n")
+        print("Hello World")
 
         # update the jobs global environment variable
         os.environ.update(self._get_job_os_envs(current_task, log_level))
@@ -3299,9 +3298,7 @@ class Worker(ServiceCommandSection):
         os.environ.pop("CLEARML_APT_INSTALL", None)
         os.environ.pop("TRAINS_APT_INSTALL", None)
         
-        import time
-        print(time.time())
-        print("Starting Task Execution:\n{}".format(current_task.id))
+        print("Starting Task Executionnnnnn:\n{}".format(current_task.id))
         exit_code = -1
         try:
             if disable_monitoring:
