@@ -255,7 +255,7 @@ class UvAPI(VirtualenvPip):
 
         if venv := os.getenv("CLEARML_AGENT_VENV_UV"):
             print(
-                "CLEARML_AGENT_VENV_UV is set, overriding UV_PROJECT_ENVIRONMENT to '%s'", venv
+                f"CLEARML_AGENT_VENV_UV is set, overriding UV_PROJECT_ENVIRONMENT to '{venv}'"
             )
             os.environ["UV_PROJECT_ENVIRONMENT"] = venv
         else:
@@ -311,7 +311,7 @@ class UvAPI(VirtualenvPip):
     def freeze(self, freeze_full_environment=False):
         if venv := os.getenv("CLEARML_AGENT_VENV_UV"):
             print(
-                "CLEARML_AGENT_VENV_UV is set, using custom venv directory '%s' for freeze", venv
+                f"CLEARML_AGENT_VENV_UV is set, using custom venv directory '{venv}' for freeze"
             )
             extra_args = ("--directory", venv)
         else:
@@ -356,13 +356,12 @@ class UvAPI(VirtualenvPip):
 
             if venv := os.getenv("CLEARML_AGENT_VENV_UV"):
                 print(
-                    "CLEARML_AGENT_VENV_UV is set, resolving python binary from custom venv '%s'", venv
+                    f"CLEARML_AGENT_VENV_UV is set, resolving python binary from custom venv '{venv}'"
                 )
                 python_path = Path(venv) / "bin" / "python"
             else:
                 print(
-                    "CLEARML_AGENT_VENV_UV is not set, resolving python binary from default venv at '%s'",
-                    self.lockfile_path / ".venv"
+                    f"CLEARML_AGENT_VENV_UV is not set, resolving python binary from default venv at '{self.lockfile_path / ".venv"}'",
                 )
                 python_path = self.lockfile_path / ".venv" / "bin" / "python"
 
