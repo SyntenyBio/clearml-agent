@@ -9,7 +9,7 @@ from ..._vendor.pathlib2 import Path
 
 import shutil
 
-from clearml_agent.definitions import ENV_AGENT_FORCE_UV
+from clearml_agent.definitions import ENV_AGENT_FORCE_UV, ENV_AGENT_VENV_UV
 from clearml_agent.helper.base import python_version_string, rm_tree
 from clearml_agent.helper.package.base import get_specific_package_version
 from clearml_agent.helper.package.pip_api.venv import VirtualenvPip
@@ -253,6 +253,9 @@ class UvAPI(VirtualenvPip):
         # type: (str) -> bool
         self.set_lockfile_path(lockfile_path)
 
+        if venv := ENV_AGENT_VENV_UV.get():
+            os.environ["UV_PROJECT_ENVIRONMENT"] = venv
+
         if self.enabled:
             # noinspection PyBroadException
             try:
@@ -299,6 +302,11 @@ class UvAPI(VirtualenvPip):
         )
 
     def freeze(self, freeze_full_environment=False):
+        if venv := ENV_AGENT_VENV_UV.get():
+            extra_args = ("--directory", venv)
+        else:
+            extra_args = ()
+
         if (
             not self.is_installed
             or not self.lockfile_path
@@ -307,17 +315,19 @@ class UvAPI(VirtualenvPip):
             # there is a bug so we have to call pip to get the freeze because UV will return the wrong list
             # packages = self.run_with_env(('freeze',), output=True).splitlines()
             packages = (
-                self.lock_config.get_run_argv("pip", "freeze", cwd=self.lockfile_path)
+                self.lock_config.get_run_argv("pip", "freeze", *extra_args, cwd=self.lockfile_path)
                 .get_output()
                 .splitlines()
             )
+
             # list clearml_agent as well
             # packages_without_program = [package for package in packages if PROGRAM_NAME not in package]
             return {"pip": packages}
 
         lines = self.lock_config.run(
-            "pip", "freeze", cwd=str(self.lockfile_path or self._cwd or self.path)
+            "pip", "freeze", *extra_args, cwd=str(self.lockfile_path or self._cwd or self.path)
         ).splitlines()
+
         # fix local filesystem reference in freeze
         from clearml_agent.external.requirements_parser.requirement import Requirement
         packages = [Requirement.parse(p) for p in lines]
@@ -330,6 +340,12 @@ class UvAPI(VirtualenvPip):
 
     def get_python_command(self, extra=()):
         if self.lock_config and self.lockfile_path and self.is_installed:
+
+            if venv := ENV_AGENT_VENV_UV.get():
+                python_path = Path(venv) / "bin" / "python"
+            else:
+                python_path = self.lockfile_path / ".venv" / "bin" / "python"
+
             if (
                 self.session
                 and self.session.config
@@ -343,7 +359,7 @@ class UvAPI(VirtualenvPip):
                     "--env-file",
                     str(self.lockfile_path / ".env"),
                     "--python",
-                    str(self.lockfile_path / ".venv" / "bin" / "python"),
+                    str(python_path),
                     "python",
                     *extra,
                     cwd=self.lockfile_path,
@@ -351,7 +367,7 @@ class UvAPI(VirtualenvPip):
             return self.lock_config.get_run_argv(
                 "run",
                 "--python",
-                str(self.lockfile_path / ".venv" / "bin" / "python"),
+                str(python_path),
                 "python",
                 *extra,
                 cwd=self.lockfile_path,
@@ -449,7 +465,7 @@ class UvAPI(VirtualenvPip):
 
         # noinspection PyBroadException
         try:
-            # if no python version requested or it's the same as ours create a new venv from the currenbt one
+            # if no python version requested or it's the same as ours create a new venv from the current one
             if not python_version or python_version_string() == python_version:
                 if UvConfig.USE_UV_BIN:
                     command = Argv(
