@@ -254,7 +254,14 @@ class UvAPI(VirtualenvPip):
         self.set_lockfile_path(lockfile_path)
 
         if venv := ENV_AGENT_VENV_UV.get():
+            print(
+                "ENV_AGENT_VENV_UV is set, overriding UV_PROJECT_ENVIRONMENT to '%s'", venv
+            )
             os.environ["UV_PROJECT_ENVIRONMENT"] = venv
+        else:
+            print(
+                "ENV_AGENT_VENV_UV is not set, using default UV_PROJECT_ENVIRONMENT"
+            )
 
         if self.enabled:
             # noinspection PyBroadException
@@ -303,8 +310,14 @@ class UvAPI(VirtualenvPip):
 
     def freeze(self, freeze_full_environment=False):
         if venv := ENV_AGENT_VENV_UV.get():
+            print(
+                "ENV_AGENT_VENV_UV is set, using custom venv directory '%s' for freeze", venv
+            )
             extra_args = ("--directory", venv)
         else:
+            print(
+                "ENV_AGENT_VENV_UV is not set, using default directory for freeze"
+            )
             extra_args = ()
 
         if (
@@ -342,8 +355,15 @@ class UvAPI(VirtualenvPip):
         if self.lock_config and self.lockfile_path and self.is_installed:
 
             if venv := ENV_AGENT_VENV_UV.get():
+                print(
+                    "ENV_AGENT_VENV_UV is set, resolving python binary from custom venv '%s'", venv
+                )
                 python_path = Path(venv) / "bin" / "python"
             else:
+                print(
+                    "ENV_AGENT_VENV_UV is not set, resolving python binary from default venv at '%s'",
+                    self.lockfile_path / ".venv"
+                )
                 python_path = self.lockfile_path / ".venv" / "bin" / "python"
 
             if (
@@ -621,7 +641,7 @@ class UvAPI(VirtualenvPip):
             try:
                 pip_venv.run_with_env(argv)
             except Exception as ex:
-                self.lock_config.log.warning("failed installing uv: {}".format(ex))
+                print("failed installing uv: {}".format(ex))
 
             self.lock_config.set_binary(pip_venv.bin)
             if (Path(self._uv_install_path) / "bin" / "uv").exists():
